@@ -7,16 +7,22 @@ class EncoderDecoder:
         self.char_set = [
             "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
             "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
-            ".", " "
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+            "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+            "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            ".", ",", "!", "?", ":", ";", "-", "Æ", "—", "‘",
+            "_", "@", "#", "$", "%", "^", "&", "“", "’", "”", "<", ">", "/",
+            "\\", "|", "~", "`", "\"", "'", " ", "\n"
         ]
+        self.char_set_len = len(self.char_set)
         self.n_encoding = n_encoding
-        self.top_n = n_encoding - len(self.char_set)
+        self.top_n = n_encoding - self.char_set_len
         self.encode_map = {char: i for i, char in enumerate(self.char_set)}
         self.decode_map = {i: char for i, char in enumerate(self.char_set)}
         self.encode_word_map = {}
         self.decode_word_map = {}
 
-    def split_words_chars(self, text: str) -> None:
+    def split_words_chars(self, text: str) -> List[str]:
         pattern = re.compile(r'(\w+|\s+|[^\w\s])')
         result = pattern.findall(text)
         return result
@@ -32,42 +38,49 @@ class EncoderDecoder:
             else:
                 word_char_counts[word] = len(word)
         # sort by total characters in text descending
-        sorted_words = sorted(word_char_counts.items(), key=lambda item: item[1], reverse=True)
+        sorted_words = sorted(word_char_counts.items(),
+                              key=lambda item: item[1],
+                              reverse=True)
         # map top words to number of available integers
         top_words = sorted_words[:self.top_n]
         for i, (word, _) in enumerate(top_words):
-            self.encode_word_map[word] = i
-            self.decode_word_map[i] = word
+            # offset word map indices by len of char set
+            self.encode_word_map[word] = i + self.char_set_len
+            self.decode_word_map[i + self.char_set_len] = word
 
     def encode(self, raw_string: str) -> List[int]:
         self.create_top_word_map(text=raw_string)
         encoded = []
         # split raw string into words and chars 
-        strs = self.split_words_chars(raw_string)
+        strings = self.split_words_chars(raw_string)
 
-        for str in strs:
+        for string in strings:
             # encode top words using word map
-            if str in self.encode_word_map:
-                encoded.append(self.encode_word_map[str])
+            if string in self.encode_word_map:
+                encoded.append(self.encode_word_map[string])
             # encode other chars with map
             else:
-                for char in str:
+                for char in string:
                     encoded.append(self.encode_map[char])
 
         return encoded
 
     def decode(self, encoded: List[int]) -> str:
-        decoded = ''
+        decoded = []
         for code in encoded:
-            # decode using word map
-            decoded += self.decode_word_map[code]
+            # decode top words using word map
+            if code in self.decode_word_map:
+                decoded.append(self.decode_word_map[code])
+            # decode other chars with map
+            else:
+                decoded.append(self.decode_map[code])
 
-        return decoded
+        return ''.join(decoded)
 
 
 if __name__ == '__main__':
 
-    file_path = '/home/encode-decode/shakespeare.txt'
+    file_path = '../encode-decode/shakespeare.txt'
     with open(file_path, 'r') as file:
         shakespeare_text = file.read()
 
@@ -77,19 +90,3 @@ if __name__ == '__main__':
     decoded = encoder_decoder.decode(encoded)
 
     print(decoded == shakespeare_text)
-
-
-        
-        # # Calculate characters saved (frequency * length)
-        # words_with_savings = [(word, count, count * len(word)) for word, count in word_counts.items()]
-        # # Sort by characters saved in descending order
-        # sorted_words = sorted(words_with_savings, key=lambda x: x[2], reverse=True)
-        # top_words = sorted_words[:top_n]
-        
-        # # Create a map for top words
-        # for idx, (word, _, _) in enumerate(top_words):
-        #     self.word_map[word] = idx
-        #     self.reverse_word_map[idx] = word
-
-    
-     
